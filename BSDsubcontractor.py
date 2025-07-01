@@ -16,10 +16,11 @@ hide_streamlit_style = """
     </style>
 """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
+
 # --- OpenAI Setup ---
 client = OpenAI(api_key=st.secrets["openai_api_key"])
 
-creds_dict = st.secrets["gcp_service_account"]
+
 cost_code_mapping_text = """00030 - Financing Fees
 00110 - Architectural Fees
 00150 - Engineering Fees
@@ -151,7 +152,28 @@ cost_code_mapping_text = """00030 - Financing Fees
 
 # --- Dropdown Options ---
 properties = ["Coto", "Milford", "647 Navy", "645 Navy", 'Sagebrush', 'Paramount', '126 Scenic', 'San Marino', 'King Arthur', 'Via Sanoma', 'Highland', 'Channel View', 'Paseo De las Estrellas']
-payable_parties = ["Christian Granados (Vendor)", "Jessica Ajtun", "Andres De Jesus"]
+payable_parties = [
+    "Alberto Contreras",
+    "Jesus Cano",
+    "Salvador Garcia",
+    "Juan Fernando Chocoj De la Cruz",
+    "Andres De Jesus",
+    "Luis De Leon",
+    "California Express Heating and Air",
+    "Pedro Pena",
+    "5 Star Construction",
+    "Martin's Kitchen Cabinets",
+    "Victor Manuel",
+    "Jorge Maldonado",
+    "USA Fire Protection",
+    "Quality and Precision Framing",
+    "Carlos Gonzalez",
+    "Nick Yuh (Vendor)",
+    "Juan Garcia",
+    "Eco Window Solutions",
+    "Precise Roof Experts",
+    "Wyron Gomez"
+]
 
 # --- Cost Code Assignment Function ---
 def assign_cost_code(description: str) -> str:
@@ -178,16 +200,27 @@ st.title("Subcontractor Payment")
 
 with st.form("subcontractor_payment_form"):
     date_invoiced = st.date_input("Date Invoiced", value=date.today())
-    property_selected = st.selectbox("Property", properties)
-    amount = st.number_input("Amount", min_value=0.0, step=1.0)
-    payable_party = st.selectbox("Payable Party", payable_parties)
-    description = st.text_area("Project Description")
+    property_selected = st.selectbox("Property", [""] + properties)
+    amount = st.number_input("Amount Requested", min_value=0.0, step=1.0)
+    payable_party = st.selectbox("Payable Parties", [""] + payable_parties)
+    description = st.text_area("Description of Work Completed")
 
     submitted = st.form_submit_button("Submit Payment")
 
 if submitted:
-    if not description:
-        st.error("Please fill out the project description.")
+    missing_fields = []
+
+    if not property_selected:
+        missing_fields.append("Property")
+    if not payable_party:
+        missing_fields.append("Payable Party")
+    if not description.strip():
+        missing_fields.append("Project Description")
+    if amount <= 0:
+        missing_fields.append("Amount")
+
+    if missing_fields:
+        st.error(f"Please fill out all required fields: {', '.join(missing_fields)}")
     else:
         with st.spinner("Processing..."):
             cost_code = assign_cost_code(description)
@@ -216,19 +249,18 @@ if submitted:
             df['Payment Method'] = None
             df['Status'] = None
             df['Form'] = "Subcontractor"
-            df['Drive Link'] = None
-            final_df = df[["Date Paid", "Date Invoiced", "Unique ID", "Claim Number", "Worker Name", "Hours", "Item Name", "Property", "QB Property", "Amount", 'Payable Party', 'Project Description', "Invoice Number", "Cost Code", 'Payment Method', "Status", "Form", "Drive Link"]]
+            final_df = df[["Date Paid", "Date Invoiced", "Unique ID", "Claim Number", "Worker Name", "Hours", "Item Name", "Property", "QB Property", "Amount", 'Payable Party', 'Project Description', "Invoice Number", "Cost Code", 'Payment Method', "Status", "Form"]]
             
             
 
             def upload_to_google_sheet(df):
                     from gspread.utils import rowcol_to_a1
 
-                    
                     scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
                     creds_dict = st.secrets["gcp_service_account"]
                     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
                     client = gspread.authorize(creds)
+
                     sheet = client.open("BSD MASTER DATA")
                     worksheet = sheet.worksheet("TEST")
 
