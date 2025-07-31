@@ -5,6 +5,9 @@ import pandas as pd
 from oauth2client.service_account import ServiceAccountCredentials
 import gspread
 from datetime import date
+from pydrive2.auth import GoogleAuth
+from pydrive2.drive import GoogleDrive
+import tempfile
 
 hide_streamlit_style = """
     <style>
@@ -19,7 +22,29 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 
 # --- OpenAI Setup ---
 client = OpenAI(api_key=st.secrets["openai_api_key"])
+creds_dict = st.secrets["gcp_service_account"]
 
+def upload_file_to_drive(uploaded_file, filename, folder_id=None):
+    gauth = GoogleAuth()
+    creds_dict = st.secrets["gcp_service_account"]
+    scope = ["https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    gauth.credentials = creds
+    drive = GoogleDrive(gauth)
+
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+        tmp_file.write(uploaded_file.getbuffer())
+        tmp_path = tmp_file.name
+
+    file_metadata = {'title': filename}
+    if folder_id:
+        file_metadata['parents'] = [{'id': folder_id}]
+
+    gfile = drive.CreateFile(file_metadata)
+    gfile.SetContentFile(tmp_path)
+    gfile.Upload(param={'supportsAllDrives': True})
+
+    return gfile['alternateLink']
 
 cost_code_mapping_text = """00030 - Financing Fees
 00110 - Architectural Fees
@@ -151,7 +176,7 @@ cost_code_mapping_text = """00030 - Financing Fees
 16900 - Sound and Audio"""
 
 # --- Dropdown Options ---
-properties = ["Coto", "Milford", "647 Navy", "645 Navy", 'Sagebrush', 'Paramount', '126 Scenic', 'San Marino', 'King Arthur', 'Via Sanoma', 'Highland', 'Channel View', 'Paseo De las Estrellas']
+properties = ["Coto", "Milford", "647 Navy", "645 Navy", 'Sagebrush', 'Paramount', '126 Scenic', 'San Marino', 'King Arthur', 'Via Sonoma', 'Highland', 'Channel View', 'Paseo De las Estrellas', 'Marguerite']
 payable_parties = [
     "Alberto Contreras",
     "Jesus Cano",
@@ -202,18 +227,32 @@ with st.form("subcontractor_payment_form"):
     date_invoiced = st.date_input("Date Invoiced", value=date.today())
     property_selected = st.selectbox("Property", [""] + properties)
     amount = st.number_input("Amount Requested", min_value=0.0, step=1.0)
-    payable_party = st.selectbox("Payable Parties", [""] + payable_parties)
+    st.markdown("#### Name")
+    payable_party_dropdown = st.selectbox("Select from list", [""] + payable_parties, key="dropdown")
+    payable_party_manual = st.text_input("Or enter manually:", key="manual_input")
     description = st.text_area("Description of Work Completed")
+    invoice = st.file_uploader("Upload Invoice", type=["jpg", "jpeg", "png", "heif", "heic"])
+    job_completion = st.file_uploader("Upload job completetion", type=["jpg", "jpeg", "png", "heif", "heic"], accept_multiple_files=True)
 
     submitted = st.form_submit_button("Submit Payment")
 
 if submitted:
+    payable_party = payable_party_manual.strip() if payable_party_manual.strip() else payable_party_dropdown
     missing_fields = []
 
+    invoice_link = ""
+    if invoice is not None:
+        invoice_link = upload_file_to_drive(invoice, invoice.name, folder_id="1Hcr059yfSaxJaX2ZAMkANlsMQykDHdUV")
+    job_completion_links = []
+    if job_completion:
+        for file in job_completion:
+            link = upload_file_to_drive(file, file.name, folder_id="1Hcr059yfSaxJaX2ZAMkANlsMQykDHdUV")
+            job_completion_links.append(link)
+    job_completion_combined = ", ".join(job_completion_links)
     if not property_selected:
         missing_fields.append("Property")
     if not payable_party:
-        missing_fields.append("Payable Party")
+        missing_fields.append("Name")
     if not description.strip():
         missing_fields.append("Project Description")
     if amount <= 0:
@@ -231,7 +270,9 @@ if submitted:
                 "Amount": amount,
                 "Payable Party": payable_party,
                 "Project Description": description,
-                "Cost Code": cost_code
+                "Cost Code": cost_code,
+                "Drive Link": invoice_link,
+                "Job Completion": job_completion_combined
             }
 
             
@@ -248,8 +289,12 @@ if submitted:
             df['Invoice Number'] = None
             df['Payment Method'] = None
             df['Status'] = None
-            df['Form'] = "Subcontractor"
-            final_df = df[["Date Paid", "Date Invoiced", "Unique ID", "Claim Number", "Worker Name", "Hours", "Item Name", "Property", "QB Property", "Amount", 'Payable Party', 'Project Description', "Invoice Number", "Cost Code", 'Payment Method', "Status", "Form"]]
+            df['Form'] = "SUBCONTRACTOR"
+            df['EQUATION DESCRIPTION'] = None
+            df['Tracking Number'] = None
+
+            
+            final_df = df[["Date Paid", "Date Invoiced", "Unique ID", "Claim Number", "Worker Name", "Hours", "Item Name", "Property", "QB Property", "Amount", 'Payable Party', 'Project Description', "Invoice Number", "Cost Code", 'Payment Method', "Status", "Form", 'Drive Link', 'EQUATION DESCRIPTION', 'Tracking Number', 'Job Completion']]
             
             
 
@@ -284,5 +329,7 @@ if submitted:
             upload_to_google_sheet(final_df)
 
             st.success("✅ Payment entry processed.")
+   
+
    
 
