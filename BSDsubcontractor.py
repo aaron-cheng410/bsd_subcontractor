@@ -177,7 +177,7 @@ cost_code_mapping_text = """00030 - Financing Fees
 16900 - Sound and Audio"""
 
 # --- Dropdown Options ---
-properties = ["Coto", "Milford", "647 Navy", "645 Navy", 'Sagebrush', 'Paramount', '126 Scenic', 'San Marino', 'King Arthur', 'Via Sonoma', 'Highland', 'Channel View', 'Paseo De las Estrellas', 'Marguerite']
+properties = ["Coto", "Milford", "647 Navy", "645 Navy", 'Sagebrush', 'Paramount', '126 Scenic', 'San Marino', 'King Arthur', 'Via Sonoma', 'Highland', 'Channel View', 'Paseo De las Estrellas', 'Marguerite', 'BSD SHOP']
 payable_parties = [
     "Alberto Contreras",
     "Jesus Cano",
