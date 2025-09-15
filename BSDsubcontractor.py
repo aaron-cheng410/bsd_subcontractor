@@ -307,8 +307,8 @@ if submitted:
                     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
                     client = gspread.authorize(creds)
 
-                    sheet = client.open("BSD MASTER DATA")
-                    worksheet = sheet.worksheet("TEST")
+                    sheet = client.open("BSD Master Data Submittals")
+                    worksheet = sheet.worksheet("Master Data")
 
                     existing = worksheet.get_all_values()
 
