@@ -177,7 +177,7 @@ cost_code_mapping_text = """00030 - Financing Fees
 16900 - Sound and Audio"""
 
 # --- Dropdown Options ---
-properties = ["Coto", "Milford", "647 Navy", "645 Navy", 'Sagebrush', 'Paramount', '126 Scenic', 'San Marino', 'King Arthur', 'Via Sonoma', 'Highland', 'Channel View', 'Paseo De las Estrellas', 'Marguerite', 'BSD SHOP']
+properties = ["Coto", "Milford", "647 Navy", "645 Navy", 'Sagebrush', 'Paramount', '126 Scenic', 'San Marino', 'King Arthur', 'Via Sonoma', 'Highland', 'Channel View', 'Paseo De las Estrellas', 'Marguerite', 'BSD SHOP', '5 Montepellier']
 payable_parties = [
     "Alberto Contreras",
     "Jesus Cano",
@@ -291,7 +291,7 @@ if submitted:
             df['Payment Method'] = None
             df['Status'] = None
             df['Form'] = "SUBCONTRACTOR"
-            df['EQUATION DESCRIPTION'] = None
+            df['EQUATION DESCRIPTION'] = description
             df['Tracking Number'] = None
 
             
