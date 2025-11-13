@@ -228,6 +228,9 @@ with st.form("subcontractor_payment_form"):
     date_invoiced = st.date_input("Date Invoiced", value=date.today())
     property_selected = st.selectbox("Property", [""] + properties)
     amount = st.number_input("Amount Requested", min_value=0.0, step=1.0)
+    st.markdown("#### Payment Method")
+    payment_method_dropdown = st.selectbox("Select from list", ["", "AMEX", "Zelle (Construction)", "Zelle (Materials)"], key="pay_drop")
+    payment_method_manual = st.text_input("Or enter manually:", key="pay_manual_input")
     st.markdown("#### Name")
     payable_party_dropdown = st.selectbox("Select from list", [""] + payable_parties, key="dropdown")
     payable_party_manual = st.text_input("Or enter manually:", key="manual_input")
@@ -239,6 +242,11 @@ with st.form("subcontractor_payment_form"):
 
 if submitted:
     payable_party = payable_party_manual.strip() if payable_party_manual.strip() else payable_party_dropdown
+    payment_method = (
+            payment_method_manual.strip()
+            if payment_method_manual.strip()
+            else (payment_method_dropdown if payment_method_dropdown else None)
+        )
     missing_fields = []
 
     invoice_link = ""
@@ -288,7 +296,7 @@ if submitted:
             df['Claim Number'] = None
             df['QB Property'] = None
             df['Invoice Number'] = None
-            df['Payment Method'] = None
+            df['Payment Method'] = payment_method if payment_method is not None else ""
             df['Status'] = None
             df['Form'] = "SUBCONTRACTOR"
             df['EQUATION DESCRIPTION'] = description
