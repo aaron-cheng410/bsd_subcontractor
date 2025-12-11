@@ -25,38 +25,48 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 client = OpenAI(api_key=st.secrets["openai_api_key"])
 creds_dict = st.secrets["gcp_service_account"]
 
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
+from googleapiclient.http import MediaFileUpload
+import tempfile
+import mimetypes
+
+
 def upload_file_to_drive(uploaded_file, filename, folder_id=None):
-    creds_dict = st.secrets["gcp_service_account"]
-    scope = ["https://www.googleapis.com/auth/drive"]
+    """Uploads a file to Google Drive using API v3 and returns the share link."""
 
-    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    creds_info = st.secrets["gcp_service_account"]
+    creds = Credentials.from_service_account_info(
+        creds_info,
+        scopes=["https://www.googleapis.com/auth/drive"]
+    )
 
-    # Force PyDrive2 into service-account mode and prevent it from loading cached auth files
-    gauth = GoogleAuth()
-    gauth.settings = {
-        "client_config_backend": "service",
-        "service_config": {
-            "client_json_file_path": None
-        }
-    }
-    gauth.credentials = creds
+    service = build("drive", "v3", credentials=creds)
 
-    drive = GoogleDrive(gauth)
+    # Save uploaded file temporarily
+    with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        tmp.write(uploaded_file.getbuffer())
+        temp_path = tmp.name
 
-    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
-        tmp_file.write(uploaded_file.getbuffer())
-        tmp_path = tmp_file.name
+    # Guess MIME type
+    mime_type, _ = mimetypes.guess_type(filename)
+    mime_type = mime_type or "application/octet-stream"
 
-    metadata = {"title": filename}
+    file_metadata = {"name": filename}
     if folder_id:
-        metadata["parents"] = [{"id": folder_id}]
+        file_metadata["parents"] = [folder_id]
 
-    gfile = drive.CreateFile(metadata)
-    gfile.SetContentFile(tmp_path)
+    media = MediaFileUpload(temp_path, mimetype=mime_type, resumable=False)
 
-    gfile.Upload(param={"supportsAllDrives": True})
+    uploaded = service.files().create(
+        body=file_metadata,
+        media_body=media,
+        supportsAllDrives=True,
+        fields="id, webViewLink, webContentLink"
+    ).execute()
 
-    return gfile["alternateLink"]
+    return uploaded.get("webViewLink")  # Most user-friendly link
+
 
 
 cost_code_mapping_text = """00030 - Financing Fees
