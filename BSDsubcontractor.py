@@ -26,26 +26,38 @@ client = OpenAI(api_key=st.secrets["openai_api_key"])
 creds_dict = st.secrets["gcp_service_account"]
 
 def upload_file_to_drive(uploaded_file, filename, folder_id=None):
-    gauth = GoogleAuth()
     creds_dict = st.secrets["gcp_service_account"]
     scope = ["https://www.googleapis.com/auth/drive"]
+
     creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+
+    # Force PyDrive2 into service-account mode and prevent it from loading cached auth files
+    gauth = GoogleAuth()
+    gauth.settings = {
+        "client_config_backend": "service",
+        "service_config": {
+            "client_json_file_path": None
+        }
+    }
     gauth.credentials = creds
+
     drive = GoogleDrive(gauth)
 
     with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
         tmp_file.write(uploaded_file.getbuffer())
         tmp_path = tmp_file.name
 
-    file_metadata = {'title': filename}
+    metadata = {"title": filename}
     if folder_id:
-        file_metadata['parents'] = [{'id': folder_id}]
+        metadata["parents"] = [{"id": folder_id}]
 
-    gfile = drive.CreateFile(file_metadata)
+    gfile = drive.CreateFile(metadata)
     gfile.SetContentFile(tmp_path)
-    gfile.Upload(param={'supportsAllDrives': True})
 
-    return gfile['alternateLink']
+    gfile.Upload(param={"supportsAllDrives": True})
+
+    return gfile["alternateLink"]
+
 
 cost_code_mapping_text = """00030 - Financing Fees
 00110 - Architectural Fees
