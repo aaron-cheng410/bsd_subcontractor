@@ -25,49 +25,27 @@ st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 client = OpenAI(api_key=st.secrets["openai_api_key"])
 creds_dict = st.secrets["gcp_service_account"]
 
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery import build
-from googleapiclient.http import MediaFileUpload
-import tempfile
-import mimetypes
-
-
 def upload_file_to_drive(uploaded_file, filename, folder_id=None):
-    """Uploads a file to Google Drive using API v3 and returns the share link."""
+    gauth = GoogleAuth()
+    creds_dict = st.secrets["gcp_service_account"]
+    scope = ["https://www.googleapis.com/auth/drive"]
+    creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+    gauth.credentials = creds
+    drive = GoogleDrive(gauth)
 
-    creds_info = st.secrets["gcp_service_account"]
-    creds = Credentials.from_service_account_info(
-        creds_info,
-        scopes=["https://www.googleapis.com/auth/drive"]
-    )
+    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+        tmp_file.write(uploaded_file.getbuffer())
+        tmp_path = tmp_file.name
 
-    service = build("drive", "v3", credentials=creds)
-
-    # Save uploaded file temporarily
-    with tempfile.NamedTemporaryFile(delete=False) as tmp:
-        tmp.write(uploaded_file.getbuffer())
-        temp_path = tmp.name
-
-    # Guess MIME type
-    mime_type, _ = mimetypes.guess_type(filename)
-    mime_type = mime_type or "application/octet-stream"
-
-    file_metadata = {"name": filename}
+    file_metadata = {'title': filename}
     if folder_id:
-        file_metadata["parents"] = [folder_id]
+        file_metadata['parents'] = [{'id': folder_id}]
 
-    media = MediaFileUpload(temp_path, mimetype=mime_type, resumable=False)
+    gfile = drive.CreateFile(file_metadata)
+    gfile.SetContentFile(tmp_path)
+    gfile.Upload(param={'supportsAllDrives': True})
 
-    uploaded = service.files().create(
-        body=file_metadata,
-        media_body=media,
-        supportsAllDrives=True,
-        fields="id, webViewLink, webContentLink"
-    ).execute()
-
-    return uploaded.get("webViewLink")  # Most user-friendly link
-
-
+    return gfile['alternateLink']
 
 cost_code_mapping_text = """00030 - Financing Fees
 00110 - Architectural Fees
@@ -273,11 +251,11 @@ if submitted:
 
     invoice_link = ""
     if invoice is not None:
-        invoice_link = upload_file_to_drive(invoice, invoice.name, folder_id="1Hcr059yfSaxJaX2ZAMkANlsMQykDHdUV")
+        invoice_link = upload_file_to_drive(invoice, invoice.name, folder_id="1f1tN4BaGPn5oruX7ngNsZPBKl23FZkWu")
     job_completion_links = []
     if job_completion:
         for file in job_completion:
-            link = upload_file_to_drive(file, file.name, folder_id="1Hcr059yfSaxJaX2ZAMkANlsMQykDHdUV")
+            link = upload_file_to_drive(file, file.name, folder_id="1f1tN4BaGPn5oruX7ngNsZPBKl23FZkWu")
             job_completion_links.append(link)
     job_completion_combined = ", ".join(job_completion_links)
     if not property_selected:
@@ -363,4 +341,3 @@ if submitted:
    
 
    
-
