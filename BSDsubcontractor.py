@@ -56,7 +56,7 @@ cost_code_mapping_text = """00030 - Financing Fees
 01028 - Safety Audit
 01100 - Surveying
 01200 - Hydro/Gas/Telus Services
-01210 - Temp Hydro
+01210 - Temp Power
 01220 - Temporary Heat
 01230 - Temporary Lighting & Security Lighting
 01240 - Temporary Water
@@ -86,6 +86,7 @@ cost_code_mapping_text = """00030 - Financing Fees
 02820 - Fencing & Gates (Fnds, Stone & Alumn)
 02900 - Landscaping
 02910 - Irrigation Systems
+08221 - Door Installation
 03050 - Concrete Material
 03100 - Formwork Material
 03150 - Foundation Labor (Form, Rebar, Hardware)
@@ -177,7 +178,7 @@ cost_code_mapping_text = """00030 - Financing Fees
 16900 - Sound and Audio"""
 
 # --- Dropdown Options ---
-properties = ["Coto", "Milford", "647 Navy", "645 Navy", 'Sagebrush', 'Paramount', '126 Scenic', 'San Marino', 'King Arthur', 'Via Sonoma', 'Highland', 'Channel View', 'Paseo De las Estrellas', 'Marguerite', 'BSD SHOP', '5 Montepellier']
+properties = ["Coto", "Milford", "647 Navy", "645 Navy", 'Sagebrush', 'Paramount', '126 Scenic', 'San Marino', 'King Arthur', 'Via Sonoma', 'Highland', 'Channel View', 'Paseo De las Estrellas', 'Marguerite', 'BSD SHOP', '5 Montepellier', 'Sycamore']
 payable_parties = [
     "Alberto Contreras",
     "Jesus Cano",
